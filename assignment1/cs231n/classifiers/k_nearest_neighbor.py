@@ -1,6 +1,7 @@
 from builtins import range
 from builtins import object
 import numpy as np
+from tqdm import tqdm
 from past.builtins import xrange
 
 
@@ -9,13 +10,13 @@ class KNearestNeighbor(object):
 
     def __init__(self):
         pass
-
+        # The 'pass' statement means a blank code
 
     def train(self, X, y):
         """
         Train the classifier. For k-nearest neighbors this is just
         memorizing the training data.
-
+        (That's the reason means 'lazy-study')
         Inputs:
         - X: A numpy array of shape (num_train, D) containing the training data
           consisting of num_train samples each of dimension D.
@@ -59,6 +60,7 @@ class KNearestNeighbor(object):
 
         Inputs:
         - X: A numpy array of shape (num_test, D) containing test data.
+        (Input don't belong to the class)
 
         Returns:
         - dists: A numpy array of shape (num_test, num_train) where dists[i, j]
@@ -68,7 +70,8 @@ class KNearestNeighbor(object):
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
-        for i in range(num_test):
+        # create num_test*num_train size zero matrix
+        for i in tqdm(range(num_test)):
             for j in range(num_train):
                 #####################################################################
                 # TODO:                                                             #
@@ -77,10 +80,15 @@ class KNearestNeighbor(object):
                 # not use a loop over dimension, nor use np.linalg.norm().          #
                 #####################################################################
                 # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+                dis = 0.0
+                dim = X.shape[1]
+                # the size of D
+                for d in range(dim):
+                    dis = (X[i][d] - self.X_train[j][d]) ** 2
+                dists[i][j] = dis
+            pass
 
-                pass
-
-                # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+            # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         return dists
 
     def compute_distances_one_loop(self, X):
@@ -93,7 +101,7 @@ class KNearestNeighbor(object):
         num_test = X.shape[0]
         num_train = self.X_train.shape[0]
         dists = np.zeros((num_test, num_train))
-        for i in range(num_test):
+        for i in tqdm(range(num_test)):
             #######################################################################
             # TODO:                                                               #
             # Compute the l2 distance between the ith test point and all training #
@@ -101,7 +109,12 @@ class KNearestNeighbor(object):
             # Do not use np.linalg.norm().                                        #
             #######################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+            # self.X_train is (num_train , D)
+            # X[i] is (D,)
+            dist = self.X_train - X[i]
+            dist = dist ** 2
+            dist = dist.sum(axis=1)
+            dists[i] = dist
             pass
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -131,6 +144,32 @@ class KNearestNeighbor(object):
         #       and two broadcast sums.                                         #
         #########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        # X : (num_test,D)
+        # self.X_train : (num_train,D)
+        # the new temp result should be like this :
+        # （num_test(i),num_train(j),D ）
+        # so the first X have no 'train' axis
+        # the second test value's 'test' axis dont appears
+
+        # dists = X[:, None, :] - self.X_train[None, :, :]
+        # dists=dists ** 2
+        # dists.sum(axis=2)
+        # sum D axis
+
+        # fix at 18:25
+        # this is too space consuming that's impossible to run the program in my computer
+        # Noticed that the sum form : x_train is num_train*D
+        #                             x_test is num_test*D
+        # so the product of these two matrix (x_train · x_test.T) is as follows:
+        # \sum ^k_j a_{ij}b_{jl} (j and l denote the corresponding index of result)
+        # just add two sqrt values and we get l2 norm
+        dists = -2*np.matmul(X,self.X_train.T) +\
+                np.stack((np.sum(np.square(X),axis=-1),)*num_train).T+ \
+                np.stack((np.sum(np.square(self.X_train), axis=-1),) * num_test)
+        # -2*np.matmul(X,self.X_train.T) is m*n , m corresponding to test_num and n
+        # np.stack((np.sum(np.square(X),axis=-1),)*num_train) is n*m ,
+        # because we stack the test X n times , thus the first dimension is 0 to n-1
+
 
         pass
 
@@ -164,7 +203,18 @@ class KNearestNeighbor(object):
             # Hint: Look up the function numpy.argsort.                             #
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+            # Noticed the hint : np.argsort return the index of its order
+            # for example :
+            # a = np.ramdom.randint(0,10,(100,))
+            # d = np.argsort(a)
+            # a[d[99]] is the max num of a
+            rank = np.argsort(dists[i])
+            indexes = rank[:k]
+            # k closest index
 
+            # fix!!
+            # the y is label of pic , so closest_y should be a part of self.Y
+            closest_y = self.y_train[indexes]
             pass
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -177,6 +227,9 @@ class KNearestNeighbor(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
+            # get the corresponding labels
+            uni_labels , count = np.unique(closest_y,return_counts=1)
+            y_pred[i] = uni_labels[np.argsort(count)[-1]]
             pass
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
