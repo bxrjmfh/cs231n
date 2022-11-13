@@ -228,8 +228,18 @@ class KNearestNeighbor(object):
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             # get the corresponding labels
-            uni_labels , count = np.unique(closest_y,return_counts=1)
-            y_pred[i] = uni_labels[np.argsort(count)[-1]]
+            # uni_labels , count = np.unique(closest_y,return_counts=1)
+            # y_pred[i] = uni_labels[np.argsort(count)[-1]]
+
+            # 1113 test
+            # to find the most common labels ,we just use np.bincount
+            # bincount return the frequency of the index value
+            # with help of argmax , we can get the common label
+            y_pred[i] = np.argmax(np.bincount(closest_y))
+            # np.bincount(closest_y) return (size_of_index,) the value is voting ,
+            # index denotes the label
+            # so just return the most common label
+
             pass
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
