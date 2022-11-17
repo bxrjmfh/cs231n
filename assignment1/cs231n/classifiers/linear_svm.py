@@ -4,6 +4,7 @@ from random import shuffle
 from past.builtins import xrange
 from tqdm import tqdm
 
+
 def svm_loss_naive(W, X, y, reg):
     """
     Structured SVM loss function, naive implementation (with loops).
@@ -39,18 +40,18 @@ def svm_loss_naive(W, X, y, reg):
             margin = scores[j] - correct_class_score + 1  # note delta = 1
             if margin > 0:
                 loss += margin
-                dW[:,j] += X[i].T
-                dW[:,y[i]] += -X[i].T
+                dW[:, j] += X[i].T
+                dW[:, y[i]] += -X[i].T
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
     dW /= num_train
     # Add regularization to the loss.
-    loss += reg * np.sum(W * W)
+    loss += 0.5*reg * np.sum(W * W)
     # W*W denotes every element's square (point multiply each vector by itself)
     # and np.sum sum them all
     # this denotes the level of regularization
-    dW += 2* reg * W
+    dW +=   reg * W
     # add the loss to regularity item
 
     #############################################################################
@@ -90,13 +91,18 @@ def svm_loss_vectorized(W, X, y, reg):
     # result in loss.                                                           #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****=
-    scores = np.matmul(X,W)
-    # the result is all s_ij matrix
-    correct_scores = scores[list(range(scores.shape[0])),list(y)].reshape(-1,1)
+    num_train = X.shape[0]
+    num_classes = W.shape[1]
+    scores = np.matmul(X, W)
+    # the result is all s_ij matrix (NxC)
+    correct_scores = scores[list(range(scores.shape[0])), list(y)].reshape(-1, 1)
     # the correct score s_yi
-
-
-
+    margins = np.maximum(0, scores - correct_scores + 1)
+    # calculate margins in form of matrix
+    # using the np.maximun function as the max operation
+    margins[range(num_train), list(y)] = 0
+    # set the yi column be zero
+    loss = np.sum(margins) / num_train + 0.5*reg * np.sum(W * W)
 
     pass
 
@@ -112,6 +118,41 @@ def svm_loss_vectorized(W, X, y, reg):
     # loss.                                                                     #
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    # bullshit
+    # we calculate the num of non-zero margins as
+    # mask = np.where(margins>0,True,False)
+    # # mask have shape (D,C)
+    # k = np.sum(mask.astype("int"),axis=0).reshape(-1,1)
+    # # dw_j = xxx -k*X_yi , k have shape 10000x1
+    #
+    # # select the X_i to be plus
+    # x_1 = np.dot(X,mask.T)
+    # # x_1 is
+    #
+    # #  select the X_yi to be minus
+    # x_2 = k*X
+    # # calculate the scalar 10000,D
+    # x_temp = x_2[np.newaxis,...].repeat(20,axis=0)
+    # # expand k*x_yi to CxNxD
+    #
+    # # turn the label to one-hot code
+    # y_onehot = np.zeros((y.shape[0],y.max()+1))
+    # y_onehot[range(y.shape[0]),y]=1
+    # # y_onehot is NxC
+    # x_2 =
+    #### shit
+
+    coeff_mat = np.zeros((num_train,num_classes))
+    # make a mask that is NxC
+    coeff_mat[margins>0] = 1
+    coeff_mat[range(num_train),list(y)]=0
+    # set the corresponding yi mat to zero
+    coeff_mat[range(num_train),list(y)] = -np.sum(coeff_mat,axis=1)
+    # set the corresponding yi mat to -k*x_yi
+
+    dW = (X.T).dot(coeff_mat)
+    dW += dW/num_train +  reg * W
+
 
     pass
 
