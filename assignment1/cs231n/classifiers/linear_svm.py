@@ -47,11 +47,11 @@ def svm_loss_naive(W, X, y, reg):
     loss /= num_train
     dW /= num_train
     # Add regularization to the loss.
-    loss += 0.5*reg * np.sum(W * W)
+    loss += 0.5 * reg * np.sum(W * W)
     # W*W denotes every element's square (point multiply each vector by itself)
     # and np.sum sum them all
     # this denotes the level of regularization
-    dW +=   reg * W
+    dW += reg * W
     # add the loss to regularity item
 
     #############################################################################
@@ -94,15 +94,15 @@ def svm_loss_vectorized(W, X, y, reg):
     num_train = X.shape[0]
     num_classes = W.shape[1]
     scores = np.matmul(X, W)
-    # the result is all s_ij matrix (NxC)
-    correct_scores = scores[list(range(scores.shape[0])), list(y)].reshape(-1, 1)
+    # the result is all s_ij matrix (NxC) , the same result as X.dot(W)
+    correct_scores = scores[range(scores.shape[0]), list(y)].reshape(-1, 1)
     # the correct score s_yi
     margins = np.maximum(0, scores - correct_scores + 1)
     # calculate margins in form of matrix
     # using the np.maximun function as the max operation
     margins[range(num_train), list(y)] = 0
     # set the yi column be zero
-    loss = np.sum(margins) / num_train + 0.5*reg * np.sum(W * W)
+    loss = np.sum(margins) / num_train + 0.5 * reg * np.sum(W * W)
 
     pass
 
@@ -142,17 +142,16 @@ def svm_loss_vectorized(W, X, y, reg):
     # x_2 =
     #### shit
 
-    coeff_mat = np.zeros((num_train,num_classes))
+    coeff_mat = np.zeros((num_train, num_classes))
     # make a mask that is NxC
-    coeff_mat[margins>0] = 1
-    coeff_mat[range(num_train),list(y)]=0
+    coeff_mat[margins > 0] = 1
+    coeff_mat[range(num_train), list(y)] = 0
     # set the corresponding yi mat to zero
-    coeff_mat[range(num_train),list(y)] = -np.sum(coeff_mat,axis=1)
+    coeff_mat[range(num_train), list(y)] = -np.sum(coeff_mat, axis=1)
     # set the corresponding yi mat to -k*x_yi
 
     dW = (X.T).dot(coeff_mat)
-    dW += dW/num_train +  reg * W
-
+    dW = dW / num_train + reg * W
 
     pass
 
