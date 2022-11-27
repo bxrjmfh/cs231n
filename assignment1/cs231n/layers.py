@@ -27,7 +27,8 @@ def affine_forward(x, w, b):
     # will need to reshape the input into rows.                               #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    out = np.dot(x.reshape((N ,-1)),w)+b.reshape((1,-1))
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -60,7 +61,16 @@ def affine_backward(dout, cache):
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    C = w.shape[1]
+    D = w.shape[0]
+    N = x.shape[0]
+    # dw =np.zeros((D,C)) + C * x.sum(axis = 0).reshape((D,1))
+    # dx = np.zeros((N,D)) + N * w.sum(axis= 1).reshape((1,D))
+    # db = C* N * np.ones((C,))
+    dw =np.zeros((D,C)) + x.sum(axis = 0).reshape((D,1))
+    dx = np.zeros((N,D)) + w.sum(axis= 1).reshape((1,D))
+    dx = dx.reshape(x.shape)
+    db = N * np.ones((C,))
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -86,7 +96,8 @@ def relu_forward(x):
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    x[x<=0] = 0
+    out = x
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -113,7 +124,9 @@ def relu_backward(dout, cache):
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    dx = np.zeros(x.shape)
+    dx[x>0] = 1
+    # set the relu to this value to avoid the check error
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
