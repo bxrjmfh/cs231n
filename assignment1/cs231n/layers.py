@@ -67,10 +67,10 @@ def affine_backward(dout, cache):
     # dw =np.zeros((D,C)) + C * x.sum(axis = 0).reshape((D,1))
     # dx = np.zeros((N,D)) + N * w.sum(axis= 1).reshape((1,D))
     # db = C* N * np.ones((C,))
-    dw =np.zeros((D,C)) + x.sum(axis = 0).reshape((D,1))
-    dx = np.zeros((N,D)) + w.sum(axis= 1).reshape((1,D))
+    dw = np.dot(x.reshape((N,-1)).T,dout)
+    dx = np.dot(dout,w.T)
     dx = dx.reshape(x.shape)
-    db = N * np.ones((C,))
+    db = dout.sum(axis= 0)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -96,8 +96,8 @@ def relu_forward(x):
     # TODO: Implement the ReLU forward pass.                                  #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    x[x<=0] = 0
-    out = x
+    out = x.copy()
+    out[out<0]= 0
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -126,6 +126,7 @@ def relu_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     dx = np.zeros(x.shape)
     dx[x>0] = 1
+    dx *= dout
     # set the relu to this value to avoid the check error
     pass
 
@@ -785,7 +786,17 @@ def svm_loss(x, y):
     # TODO: Copy over your solution from A1.
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    C = x.shape[1]
+    correct_scores = x[range(N),list(y)].reshape(-1,1)
+    margins = np.maximum(0,x - correct_scores + 1)
+    # calculate margins in form of matrix
+    # using the np.maximun function as the max operation
+    margins[range(N), list(y)] = 0
+    # set the yi column be zero
+    loss = np.sum(margins)/N
+    dx = (margins>0).astype('int')
+    dx[range(N),list(y)] = 0
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
