@@ -796,7 +796,9 @@ def svm_loss(x, y):
     # set the yi column be zero
     loss = np.sum(margins)/N
     dx = (margins>0).astype('int')
-    dx[range(N),list(y)] = 0
+    dx[range(N),list(y)] = 1-C
+    dx =dx/ float(N)
+    # very hard ...
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -826,6 +828,7 @@ def softmax_loss(x, y):
     # TODO: Copy over your solution from A1.
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    shift_fx = dx-dx.max()
 
     pass
 
