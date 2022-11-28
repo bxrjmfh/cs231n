@@ -828,8 +828,15 @@ def softmax_loss(x, y):
     # TODO: Copy over your solution from A1.
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-    shift_fx = dx-dx.max()
-
+    N = x.shape[0]
+    shift_fx = x-x.max()
+    exp_f = np.exp(shift_fx)
+    sum_j_ef = exp_f.sum(axis=1)
+    e_fyi = exp_f[range(N),list(y)]
+    L_i = -np.log(e_fyi / sum_j_ef)
+    loss = L_i.sum()/N
+    dx = exp_f / sum_j_ef.reshape(N,-1) /N
+    dx[range(N),list(y)] = -1/N * (-e_fyi/sum_j_ef + 1)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
