@@ -91,7 +91,10 @@ class TwoLayerNet(object):
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        o_af1,cache_1 = affine_forward(X,self.params['W1'],self.params['b1'])
+        o_r,cache_r = relu_forward(o_af1)
+        o_af2,cache_2 = affine_forward(o_r,self.params["W2"],self.params['b2'])
+        scores = o_af2
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -115,7 +118,19 @@ class TwoLayerNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        loss,do_af2 = softmax_loss(scores,y)
+        do_r , dW2, db2 = affine_backward(do_af2,cache_2)
+        do_af1 = relu_backward(do_r,cache_r)
+        dx ,dW1 , db1 = affine_backward(do_af1,cache_1)
+        # add regular
+        loss += 0.5 * self.reg * np.sum(cache_1[1]*cache_1[1])
+        loss += 0.5 * self.reg * np.sum(cache_2[1]*cache_2[1])
+        dW1 += self.reg * cache_1[1]
+        dW2 += self.reg * cache_2[1]
+        grads.update({'W1':dW1})
+        grads.update({'b1':db1})
+        grads.update({'W2':dW2})
+        grads.update({'b2':db2})
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
