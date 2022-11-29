@@ -40,7 +40,7 @@ def sgd(w, dw, config=None):
     if config is None:
         config = {}
     config.setdefault("learning_rate", 1e-2)
-
+    dw = dw.reshape(w.shape)
     w -= config["learning_rate"] * dw
     return w, config
 
@@ -68,7 +68,8 @@ def sgd_momentum(w, dw, config=None):
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    v = config["momentum"]* v + dw
+    w -= config["learning_rate"] * v
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
