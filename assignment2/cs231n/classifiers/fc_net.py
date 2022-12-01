@@ -73,7 +73,19 @@ class FullyConnectedNet(object):
         # parameters should be initialized to zeros.                               #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        # first layers
+        self.params.update({'W1':np.random.normal(0,weight_scale,(input_dim,hidden_dims))})
+        self.params.update({'b1':np.zeros((hidden_dims,1))})
+        # from 2 to L-1 layer.
+        for i in range(2,self.num_layers):
+            w = 'W{}'.format(i)
+            b = 'b{}'.format(i)
+            self.params.update({w:np.random.normal(0,weight_scale,(hidden_dims,hidden_dims))})
+            self.params.update({b:np.zeros((hidden_dims,1))})
 
+        # L th layer
+        self.params.update({'W{}'.format(self.num_layers):np.random.normal(0,weight_scale,(hidden_dims,num_classes))})
+        self.params.update({'b{}'.format(self.num_layers):np.zeros((num_classes,1))})
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
