@@ -73,19 +73,23 @@ class FullyConnectedNet(object):
         # parameters should be initialized to zeros.                               #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        # construct input-output pair
+        net_in = [input_dim]+hidden_dims
+        net_out = hidden_dims+[num_classes]
+        affine_size = list(zip(net_in,net_out))
         # first layers
-        self.params.update({'W1':np.random.normal(0,weight_scale,(input_dim,hidden_dims))})
-        self.params.update({'b1':np.zeros((hidden_dims,1))})
+        self.params.update({'W1':np.random.normal(0,weight_scale,affine_size[0])})
+        self.params.update({'b1':np.zeros((net_out[0],1))})
         # from 2 to L-1 layer.
         for i in range(2,self.num_layers):
             w = 'W{}'.format(i)
             b = 'b{}'.format(i)
-            self.params.update({w:np.random.normal(0,weight_scale,(hidden_dims,hidden_dims))})
-            self.params.update({b:np.zeros((hidden_dims,1))})
+            self.params.update({w:np.random.normal(0,weight_scale,affine_size[i-1])})
+            self.params.update({b:np.zeros((net_out[i-1],1))})
 
         # L th layer
-        self.params.update({'W{}'.format(self.num_layers):np.random.normal(0,weight_scale,(hidden_dims,num_classes))})
-        self.params.update({'b{}'.format(self.num_layers):np.zeros((num_classes,1))})
+        self.params.update({'W{}'.format(self.num_layers):np.random.normal(0,weight_scale,affine_size[self.num_layers-1])})
+        self.params.update({'b{}'.format(self.num_layers):np.zeros((net_out[self.num_layers-1],1))})
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -159,7 +163,25 @@ class FullyConnectedNet(object):
         # layer, etc.                                                              #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        N = X.shape[0]
+        res = X.reshape((N,-1))
+        caches = {}
+        # calculate the value of layer 1 to layer L-1 , which contains an affine and a relu.
+        for i in range(1,self.num_layers):
+            res,cache = affine_forward(res,self.params['W{}'.format(i)],self.params['b{}'.format(i)])
+            # cache have (x,w,b)
+            caches.update({'aff_cache{}'.format(i):cache})
+            # calculate relu
+            res,cache=relu_forward(res)
+            # cache = x
+            caches.update({'relu_cache{}'.format(i):cache})
+            
+        # calculate L value
+        res,cache = affine_forward(res,self.params['W{}'.format(self.num_layers)],self.params['b{}'.format(self.num_layers)])
+        caches.update({'aff_cache{}'.format(self.num_layers): cache})
+        
+        scores = np.copy(res)
+        
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -186,9 +208,18 @@ class FullyConnectedNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-        pass
-
+        loss,df=softmax_loss(scores,y)
+        # calculate the L th layer's dW
+        df,dw,db = affine_backward(df,caches['aff_cache{}'.format(self.num_layers)])
+        grads.update({'W{}'.format(self.num_layers):dw})
+        grads.update({'b{}'.format(self.num_layers):db})
+        # calculate remain part
+        for i in range(self.num_layers-1,0,-1):
+            # first relu and next is affine
+            df = relu_backward(df,caches['relu_cache{}'.format(i)])
+            df, dw, db = affine_backward(df, caches['aff_cache{}'.format(i)])
+            grads.update({'W{}'.format(i): dw})
+            grads.update({'b{}'.format(i): db})
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
         #                             END OF YOUR CODE                             #

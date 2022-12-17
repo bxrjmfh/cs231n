@@ -24,7 +24,8 @@ def affine_forward(x, w, b):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    out = np.dot(x.reshape((N, -1)), w) + b.reshape((1, -1))
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -56,7 +57,18 @@ def affine_backward(dout, cache):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    C = w.shape[1]
+    D = w.shape[0]
+    N = x.shape[0]
+    # dw =np.zeros((D,C)) + C * x.sum(axis = 0).reshape((D,1))
+    # dx = np.zeros((N,D)) + N * w.sum(axis= 1).reshape((1,D))
+    # db = C* N * np.ones((C,))
+    dw = np.dot(x.reshape((N, -1)).T, dout)
+    dx = np.dot(dout, w.T)
+    dx = dx.reshape(x.shape)
+    db = dout.sum(axis=0)
+    db = db.reshape(-1,1)
+    # reshape to pass the check
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -81,7 +93,8 @@ def relu_forward(x):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    out = x.copy()
+    out[out < 0] = 0
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -107,7 +120,10 @@ def relu_backward(dout, cache):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    dx = np.zeros(x.shape)
+    dx[x > 0] = 1
+    dx *= dout
+    # set the relu to this value to avoid the check error
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -136,7 +152,15 @@ def softmax_loss(x, y):
     # TODO: Copy over your solution from Assignment 1.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    shift_fx = x - x.max()
+    exp_f = np.exp(shift_fx)
+    sum_j_ef = exp_f.sum(axis=1)
+    e_fyi = exp_f[range(N), list(y)]
+    L_i = -np.log(e_fyi / sum_j_ef)
+    loss = L_i.sum() / N
+    dx = exp_f / sum_j_ef.reshape(N, -1) / N
+    dx[range(N), list(y)] = -1 / N * (-e_fyi / sum_j_ef + 1)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
