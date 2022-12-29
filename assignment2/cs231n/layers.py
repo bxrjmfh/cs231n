@@ -239,6 +239,17 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # might prove to be helpful.                                          #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        N = x.shape[0]
+        D = x.shape[1]
+        running_mean = (1 - momentum) * running_mean + momentum * np.mean(x, axis=0)
+        running_var = (1 - momentum) * running_var + momentum * np.var(x, axis=0)
+        # update mean and var
+        out = (x-running_mean.reshape(-1,D))/\
+              (np.sqrt(running_var.reshape(-1,D)+eps))
+        std_x = out.copy()
+        # as cache
+        out = gamma.reshape(-1,D) * out + beta.reshape(-1,D)
+        cache = (std_x)
 
         pass
 
@@ -254,7 +265,12 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Store the result in the out variable.                               #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+        N = x.shape[0]
+        D = x.shape[1]
+        out = (x - running_mean.reshape(-1,D)) / \
+              (np.sqrt(running_var.reshape(-1,D) + eps))
+        out = gamma.reshape(-1,D) * out + beta.reshape(-1,D)
+        cache = None
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
