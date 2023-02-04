@@ -67,7 +67,7 @@ def affine_backward(dout, cache):
     dx = np.dot(dout, w.T)
     dx = dx.reshape(x.shape)
     db = dout.sum(axis=0)
-    db = db.reshape(-1,1)
+    db = db.reshape(-1, 1)
     # reshape to pass the check
     pass
 
@@ -244,12 +244,15 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         running_mean = (1 - momentum) * running_mean + momentum * np.mean(x, axis=0)
         running_var = (1 - momentum) * running_var + momentum * np.var(x, axis=0)
         # update mean and var
-        out = (x-running_mean.reshape(-1,D))/\
-              (np.sqrt(running_var.reshape(-1,D)+eps))
+        va = x - running_mean.reshape(-1, D)
+        vb = np.sqrt(running_var.reshape(-1, D) + eps)
+
+        out = va / vb
         std_x = out.copy()
         # as cache
-        out = gamma.reshape(-1,D) * out + beta.reshape(-1,D)
-        cache = (std_x)
+        out = gamma.reshape(-1, D) * out + beta.reshape(-1, D)
+        cache = {'std_x': std_x, 'gamma': gamma, 'va': va, 'vb': vb,
+                 'x': x, 'mom': momentum}
 
         pass
 
@@ -267,9 +270,9 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         N = x.shape[0]
         D = x.shape[1]
-        out = (x - running_mean.reshape(-1,D)) / \
-              (np.sqrt(running_var.reshape(-1,D) + eps))
-        out = gamma.reshape(-1,D) * out + beta.reshape(-1,D)
+        out = (x - running_mean.reshape(-1, D)) / \
+              (np.sqrt(running_var.reshape(-1, D) + eps))
+        out = gamma.reshape(-1, D) * out + beta.reshape(-1, D)
         cache = None
         pass
 
@@ -311,10 +314,14 @@ def batchnorm_backward(dout, cache):
     # might prove to be helpful.                                              #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
-    pass
-
-    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N = dout.shape[0]
+    dx = dout * cache['gamma'] * ((1 - cache['mom'] / N) * cache['vb'] -
+                                  cache['mom'] * (1.0 - 1 / N) * (cache['x'] - np.mean(cache['x'], axis=0)) * cache['va']) /\
+                                  (cache['vb'] ** 2)
+    # dgamma = np.sum(dout * cache['va'] / cache['vb'], axis=0)
+    dgamma = np.sum(dout * cache['std_x'], axis=0)
+    dbeta = np.sum(dout, axis=0)
+    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****    dbeta = np.sum(dout, axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -345,7 +352,9 @@ def batchnorm_backward_alt(dout, cache):
     # single statement; our implementation fits on a single 80-character line.#
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    dx = dout
+    dgamma = dout * cache
+    dbeta = np.sum(dout, axis=0)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
