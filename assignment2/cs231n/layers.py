@@ -319,7 +319,7 @@ def batchnorm_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     N = dout.shape[0]
     # we use chain rule and ignore relationship between \mu and \sigma
-    pl_pxt = dout* cache['gamma']
+    pl_pxt = dout* cache['gamma'].T
     pl_ps = np.sum(-0.5*pl_pxt*cache['va']/cache['vb']**3,axis=0)
     pl_pm = np.sum(-pl_pxt/cache['vb'],axis=0)
     dx = pl_pxt/cache['vb'] + pl_ps*2*cache['va']/N +pl_pm/N
