@@ -114,6 +114,13 @@ class FullyConnectedNet(object):
         self.bn_params = []
         if self.normalization == "batchnorm":
             self.bn_params = [{"mode": "train"} for i in range(self.num_layers - 1)]
+            # L-1 layers , Lth not
+            for i in range(1, self.num_layers):
+                # 1 -> L-1
+                gamma = 'gamma{}'.format(i)
+                beta = 'beta{}'.format(i)
+                self.params.update({gamma: np.ones((net_out[i-1], ))})
+                self.params.update({beta: np.zeros((net_out[i-1], ))})
         if self.normalization == "layernorm":
             self.bn_params = [{} for i in range(self.num_layers - 1)]
 
@@ -171,6 +178,12 @@ class FullyConnectedNet(object):
             res,cache = affine_forward(res,self.params['W{}'.format(i)],self.params['b{}'.format(i)])
             # cache have (x,w,b)
             caches.update({'aff_cache{}'.format(i):cache})
+            # calculate BN
+            if self.normalization == 'batchnorm':
+                res,cache = batchnorm_forward(res,self.params['gamma{}'.format(i)]
+                                                 ,self.params['beta{}'.format(i)]
+                                                 ,self.bn_params[i-1])
+                caches.update({'BN{}'.format(i):cache})
             # calculate relu
             res,cache=relu_forward(res)
             # cache = x
@@ -217,6 +230,10 @@ class FullyConnectedNet(object):
         for i in range(self.num_layers-1,0,-1):
             # first relu and next is affine
             df = relu_backward(df,caches['relu_cache{}'.format(i)])
+            if self.normalization == "batchnorm":
+                df, dgamma, dbeta = batchnorm_backward(df,caches['BN{}'.format(i)])
+                grads.update({'gamma{}'.format(i):dgamma})
+                grads.update({'beta{}'.format(i):dbeta})
             df, dw, db = affine_backward(df, caches['aff_cache{}'.format(i)])
             grads.update({'W{}'.format(i): dw})
             grads.update({'b{}'.format(i): db})
