@@ -412,7 +412,18 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = x.shape[0]
+    D = x.shape[1]
+    layer_mean = np.mean(x,axis=1)
+    layer_var = np.var(x,axis=1)
+    va = x - layer_mean.reshape(N, -1)
+    vb = np.sqrt(layer_var.reshape(N,-1) + eps)
+    out = va/vb
+    std_x = out.copy()
+    out = gamma.reshape(-1, D) * out + beta.reshape(-1, D)
+    cache = {'std_x': std_x, 'layer_mean': layer_mean, 'layer_var': layer_var,
+             'gamma': gamma, 'va': va, 'vb': vb,
+             'x': x}
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -446,7 +457,14 @@ def layernorm_backward(dout, cache):
     # still apply!                                                            #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N = dout.shape[0]
+    D = dout.shape[1]
+    pl_pxt = dout * cache['gamma'].T
+    pl_ps = np.sum(-0.5 * pl_pxt * cache['va'] / cache['vb'] ** 3, axis=1)
+    pl_pm = np.sum(-pl_pxt / cache['vb'], axis=1)
+    dx = pl_pxt / cache['vb'] + pl_ps.reshape((N,-1)) * 2 * cache['va'] / D + pl_pm.reshape((N,-1)) / D
+    dgamma = np.sum(dout * cache['std_x'], axis=0)
+    dbeta = np.sum(dout, axis=0)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
