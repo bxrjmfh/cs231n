@@ -253,7 +253,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         std_x = out.copy()
         # as cache
         out = gamma.reshape(-1, D) * out + beta.reshape(-1, D)
-        cache = {'std_x': std_x, 'mini_mean': mini_mean , 'mini_var':mini_var,
+        cache = {'std_x': std_x, 'mini_mean': mini_mean, 'mini_var': mini_var,
                  'gamma': gamma, 'va': va, 'vb': vb,
                  'x': x, 'mom': momentum}
 
@@ -319,10 +319,10 @@ def batchnorm_backward(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     N = dout.shape[0]
     # we use chain rule and ignore relationship between \mu and \sigma
-    pl_pxt = dout* cache['gamma'].T
-    pl_ps = np.sum(-0.5*pl_pxt*cache['va']/cache['vb']**3,axis=0)
-    pl_pm = np.sum(-pl_pxt/cache['vb'],axis=0)
-    dx = pl_pxt/cache['vb'] + pl_ps*2*cache['va']/N +pl_pm/N
+    pl_pxt = dout * cache['gamma'].T
+    pl_ps = np.sum(-0.5 * pl_pxt * cache['va'] / cache['vb'] ** 3, axis=0)
+    pl_pm = np.sum(-pl_pxt / cache['vb'], axis=0)
+    dx = pl_pxt / cache['vb'] + pl_ps * 2 * cache['va'] / N + pl_pm / N
     # correct
 
     dgamma = np.sum(dout * cache['std_x'], axis=0)
@@ -360,10 +360,10 @@ def batchnorm_backward_alt(dout, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     N = dout.shape[0]
     # we use chain rule and ignore relationship between \mu and \sigma
-    pl_pxt = dout* cache['gamma']
-    pl_ps = np.sum(-0.5*pl_pxt*cache['va']/cache['vb']**3,axis=0)
-    pl_pm = np.sum(-pl_pxt/cache['vb'],axis=0)
-    dx = pl_pxt/cache['vb'] + pl_ps*2*cache['va']/N +pl_pm/N
+    pl_pxt = dout * cache['gamma']
+    pl_ps = np.sum(-0.5 * pl_pxt * cache['va'] / cache['vb'] ** 3, axis=0)
+    pl_pm = np.sum(-pl_pxt / cache['vb'], axis=0)
+    dx = pl_pxt / cache['vb'] + pl_ps * 2 * cache['va'] / N + pl_pm / N
     # correct
 
     dgamma = np.sum(dout * cache['std_x'], axis=0)
@@ -414,11 +414,11 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     N = x.shape[0]
     D = x.shape[1]
-    layer_mean = np.mean(x,axis=1)
-    layer_var = np.var(x,axis=1)
+    layer_mean = np.mean(x, axis=1)
+    layer_var = np.var(x, axis=1)
     va = x - layer_mean.reshape(N, -1)
-    vb = np.sqrt(layer_var.reshape(N,-1) + eps)
-    out = va/vb
+    vb = np.sqrt(layer_var.reshape(N, -1) + eps)
+    out = va / vb
     std_x = out.copy()
     out = gamma.reshape(-1, D) * out + beta.reshape(-1, D)
     cache = {'std_x': std_x, 'layer_mean': layer_mean, 'layer_var': layer_var,
@@ -462,7 +462,7 @@ def layernorm_backward(dout, cache):
     pl_pxt = dout * cache['gamma'].T
     pl_ps = np.sum(-0.5 * pl_pxt * cache['va'] / cache['vb'] ** 3, axis=1)
     pl_pm = np.sum(-pl_pxt / cache['vb'], axis=1)
-    dx = pl_pxt / cache['vb'] + pl_ps.reshape((N,-1)) * 2 * cache['va'] / D + pl_pm.reshape((N,-1)) / D
+    dx = pl_pxt / cache['vb'] + pl_ps.reshape((N, -1)) * 2 * cache['va'] / D + pl_pm.reshape((N, -1)) / D
     dgamma = np.sum(dout * cache['std_x'], axis=0)
     dbeta = np.sum(dout, axis=0)
     pass
@@ -510,7 +510,7 @@ def dropout_forward(x, dropout_param):
         # Store the dropout mask in the mask variable.                        #
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-        mask = np.random.choice([True,False],x.shape,p=[1-p,p])
+        mask = np.random.choice([True, False], x.shape, p=[1 - p, p])
         # Element with 'True' will be muted.
         out = x.copy()
         out[mask] = 0
@@ -600,7 +600,27 @@ def conv_forward_naive(x, w, b, conv_param):
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    (N, C, H, W) = x.shape
+    stride,pad = conv_param['stride'],conv_param['pad']
+    if pad != 0:
+        temp_1 = (0,0),
+        temp_2 = (pad,pad),
+        pad_with = (temp_1*(len(x.shape)-2)+temp_2*2)
+        x=np.pad(x,pad_with)
 
+    (F, _, HH, WW) = w.shape
+    H_t = 1 + (H + 2 * pad - HH) // stride
+    W_t = 1 + (W + 2 * pad - WW) // stride
+    out = np.zeros((N, F, H_t, W_t))
+    for i in range(0, H_t):
+        for j in range(0, W_t):
+            # calculate
+            block = x[:, :, i*stride:i*stride + HH , j*stride :j*stride + WW ]
+            doc = np.expand_dims(block,axis=1) * np.expand_dims(w,axis=0)
+            # block with shape (N,C,HH,WW) -> (N,(F),C,HH,WW)
+            # w with shape ((N),F,C,HH,WW)
+            # doc with (N,F,C,HH,WW)
+            out[..., i, j] = doc.reshape(N, F, -1).sum(axis=-1) + b
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -628,7 +648,25 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, w, b, stride, pad = cache[0],cache[1], cache[2], cache[3]['stride'], cache[3]['pad']
+    (N, C, H, W) = x.shape
+    (F, _, HH, WW) = w.shape
 
+    padDX = np.zeros((N,1,C,H+pad*2,W+pad*2))
+    H_t = 1 + (H + 2 * pad - HH) // stride
+    W_t = 1 + (W + 2 * pad - WW) // stride
+
+    for i in range(H_t):
+        for j in range(W_t):
+            print(j)
+            Pdout = dout[..., i, j]
+            res = (np.expand_dims(Pdout,axis=[2,3,4])*np.expand_dims(w,axis=0)).sum(axis=1,keepdims=True)
+            padDX[..., i * stride:i * stride + HH, j * stride:j * stride + WW] += res
+
+            # padDX[N,1,C,H+pad*2,W+pad*2] dout[N,F,H_t,W_t]
+    dx = padDX[...,dout:dout+H,dout:dout+W]
+    dw = np.zeros(w.shape)
+    db = dout
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
