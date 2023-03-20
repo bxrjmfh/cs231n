@@ -759,9 +759,10 @@ def max_pool_backward_naive(dout, cache):
     for i in range(H_t):
         for j in range(W_t):
             block = x[:, :, i * stride:i * stride + HH, j * stride:j * stride + WW]
-            index = block.max(axis=(2,3))
-            binarryMask = (block==(index[:,:,None,None]))
-            dx[...,i * stride:i * stride+HH,j * stride:j * stride+WW] += binarryMask * np.expand_dims(dout[...,i,j],axis=(2,3))
+            index = block.max(axis=(2, 3))
+            binarryMask = (block == (index[:, :, None, None]))
+            dx[..., i * stride:i * stride + HH, j * stride:j * stride + WW] += binarryMask * np.expand_dims(
+                dout[..., i, j], axis=(2, 3))
             # expand_dims same as [...,None]
     pass
 
@@ -803,7 +804,9 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N, C, H, W = x.shape
+    temp_output, cache = batchnorm_forward(x.transpose(0, 3, 2, 1).reshape((N * H * W, C)), gamma, beta, bn_param)
+    out = temp_output.reshape(N, W, H, C).transpose(0, 3, 2, 1)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -836,7 +839,9 @@ def spatial_batchnorm_backward(dout, cache):
     # Your implementation should be very short; ours is less than five lines. #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
-
+    N, C, H, W = dout.shape
+    dx_temp, dgamma, dbeta = batchnorm_backward_alt(dout.transpose(0, 3, 2, 1).reshape((N * H * W, C)), cache)
+    dx = dx_temp.reshape(N, W, H, C).transpose(0, 3, 2, 1)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -877,7 +882,29 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # and layer normalization!                                                #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    N, C, H, W = x.shape
+    out = []
+    cache = {}
+    xReshape = np.reshape(x, (N, G, C // G, H, W))
+    xTrans = np.transpose(xReshape, (1, 0, 3, 4, 2))
+    # to [G, N, H, W, C // G]
+    gamma = np.reshape(gamma, (G, C // G))
+    beta = np.reshape(beta, (G, C // G))
+    for i, group in enumerate(xTrans):
+        # group with shape [N, H, W, C // G]
+        groupReshape = np.reshape(group, (-1, C // G))
+        groupOut, groupCache = layernorm_forward(groupReshape, gamma[i], beta[i], gn_param)
+        out.append(groupOut)
+        cache.update({f'{i}': groupCache})
 
+    out = np.asarray(out)
+    # from [G, N*H*W, C // G] back
+    out = np.transpose(out, (2, 0, 1))
+    # [C // G, G, N*H*W]
+    out = out.reshape(C, N, H, W)
+    out = np.transpose(out, (1, 0, 2, 3))
+    cache.update({'x': x})
+    cache.update({'G': G})
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -906,7 +933,40 @@ def spatial_groupnorm_backward(dout, cache):
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x = cache['x']
+    G = cache["G"]
+    N, C, H, W = x.shape
+    dx = []
+    dgamma = []
+    dbeta = []
+    doutReshape = np.reshape(dout, (N, G, C // G, H, W))
+    doutTrans = np.transpose(doutReshape, (1, 0, 3, 4, 2))
+    for i, dout in enumerate(doutTrans):
+        dxTemp, dgammaTemp, dbetaTemp = layernorm_backward(dout.reshape(-1,C // G), cache[f'{i}'])
+        dx.append(dxTemp)
+        dgamma.append(dgammaTemp)
+        dbeta.append(dbetaTemp)
 
+    dx = np.asarray(dx)
+    # from [G, N*H*W, C // G] back
+    dx = np.transpose(dx, (2, 0, 1))
+    # [C // G, G, N*H*W]
+    dx = dx.reshape(C // G, G, N, H, W)
+    dx = np.transpose(dx, (2, 1, 0, 3, 4))
+    dx = dx.reshape(N, C, H, W)
+
+    dbeta = np.asarray(dbeta)
+    # [G, C//G]
+    dbeta_ = dbeta.copy()
+    dbeta = dbeta.reshape(C//G,G)
+    dbeta = dbeta.T
+    dbeta = dbeta.reshape(1, C, 1, 1)
+
+    dgamma = np.asarray(dgamma)
+    dgamma_ = dgamma
+    dgamma = dgamma.reshape(C//G,G)
+    dgamma = dgamma.T
+    dgamma = dgamma.reshape(1, C, 1, 1)
     pass
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****

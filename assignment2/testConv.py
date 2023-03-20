@@ -16,28 +16,27 @@ def rel_error(x, y):
   """ returns relative error """
   return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
 
-num_inputs = 2
-input_dim = (3, 16, 16)
-reg = 0.0
-num_classes = 10
 np.random.seed(231)
-X = np.random.randn(num_inputs, *input_dim)
-y = np.random.randint(num_classes, size=num_inputs)
+N, C, H, W = 2, 6, 4, 5
+G = 2
+x = 5 * np.random.randn(N, C, H, W) + 12
+gamma = np.random.randn(1,C,1,1)
+beta = np.random.randn(1,C,1,1)
+dout = np.random.randn(N, C, H, W)
 
-model = ThreeLayerConvNet(
-    num_filters=3,
-    filter_size=3,
-    input_dim=input_dim,
-    hidden_dim=7,
-    dtype=np.float64
-)
-loss, grads = model.loss(X, y)
-# Errors should be small, but correct implementations may have
-# relative errors up to the order of e-2
-for param_name in sorted(grads):
-    f = lambda _: model.loss(X, y)[0]
-    param_grad_num = eval_numerical_gradient(f, model.params[param_name], verbose=False, h=1e-6)
-    e = rel_error(param_grad_num, grads[param_name])
-    print('%s max relative error: %e' % (param_name, rel_error(param_grad_num, grads[param_name])))
+gn_param = {}
+fx = lambda x: spatial_groupnorm_forward(x, gamma, beta, G, gn_param)[0]
+fg = lambda a: spatial_groupnorm_forward(x, gamma, beta, G, gn_param)[0]
+fb = lambda b: spatial_groupnorm_forward(x, gamma, beta, G, gn_param)[0]
 
-print('a')
+dx_num = eval_numerical_gradient_array(fx, x, dout)
+da_num = eval_numerical_gradient_array(fg, gamma, dout)
+db_num = eval_numerical_gradient_array(fb, beta, dout)
+
+_, cache = spatial_groupnorm_forward(x, gamma, beta, G, gn_param)
+dx, dgamma, dbeta = spatial_groupnorm_backward(dout, cache)
+
+# You should expect errors of magnitudes between 1e-12 and 1e-07.
+print('dx error: ', rel_error(dx_num, dx))
+print('dgamma error: ', rel_error(da_num, dgamma))
+print('dbeta error: ', rel_error(db_num, dbeta))
