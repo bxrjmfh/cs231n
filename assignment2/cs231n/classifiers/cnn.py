@@ -62,6 +62,15 @@ class ThreeLayerConvNet(object):
         # the start of the loss() function to see how that happens.                #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        # conv - relu - 2x2 max pool - affine - relu - affine - softmax
+        C,H,W = input_dim
+        self.params.update({'W1':np.random.randn(num_filters,C,filter_size,filter_size)*weight_scale})
+        self.params.update({'b1':np.random.randn(num_filters)*weight_scale})
+        D = num_filters*H*W//4
+        self.params.update({'W2':np.random.randn(D,hidden_dim)*weight_scale})
+        self.params.update({'b2':np.random.randn(hidden_dim,1)*weight_scale})
+        self.params.update({'W3':np.random.randn(hidden_dim,num_classes)*weight_scale})
+        self.params.update({'b3':np.random.randn(num_classes,1)*weight_scale})
 
         pass
 
@@ -101,7 +110,14 @@ class ThreeLayerConvNet(object):
         # cs231n/layer_utils.py in your implementation (already imported).         #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        convRes,convCache = conv_forward_fast(X,W1,b1,conv_param)
+        reluRes1,reluCache1 = relu_forward(convRes)
+        maxpoolingRes,maxpoolingCache = max_pool_forward_fast(reluRes1,pool_param)
+        affineRes1,affineCache1 = affine_forward(maxpoolingRes,W2,b2)
+        reluRes2,reluCache2 = relu_forward(affineRes1)
+        affineRes2,affineCache2 = affine_forward(reluRes2,W3,b3)
 
+        scores = affineRes2
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -124,7 +140,22 @@ class ThreeLayerConvNet(object):
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        loss,dout = softmax_loss(scores,y)
+        affineDout2,dw3,db3 = affine_backward(dout,affineCache2)
+        reluDout2 = relu_backward(affineDout2,reluCache2)
+        affineDout1,dw2,db2 = affine_backward(reluDout2,affineCache1)
+        maxpoolingDout = max_pool_backward_fast(affineDout1,maxpoolingCache)
+        reluDout1 = relu_backward(maxpoolingDout,reluCache1)
+        convDout,dw1,db1 = conv_backward_fast(reluDout1,convCache)
 
+        names = ['W1',"b1",'W2',"b2",'W3',"b3"]
+        dvals = [dw1,db1,dw2,db2,dw3,db3]
+        vals = [W1,b1,W2,b2,W3,b3]
+
+
+        for i,name in enumerate(names):
+            loss += self.reg*0.5*((vals[i])**2).sum()
+            grads.update({name:dvals[i]+self.reg*vals[i]})
         pass
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****

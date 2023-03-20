@@ -16,16 +16,28 @@ def rel_error(x, y):
   """ returns relative error """
   return np.max(np.abs(x - y) / (np.maximum(1e-8, np.abs(x) + np.abs(y))))
 
+num_inputs = 2
+input_dim = (3, 16, 16)
+reg = 0.0
+num_classes = 10
 np.random.seed(231)
-x = np.random.randn(3, 2, 8, 8)
-dout = np.random.randn(3, 2, 4, 4)
-pool_param = {'pool_height': 2, 'pool_width': 2, 'stride': 2}
+X = np.random.randn(num_inputs, *input_dim)
+y = np.random.randint(num_classes, size=num_inputs)
 
-dx_num = eval_numerical_gradient_array(lambda x: max_pool_forward_naive(x, pool_param)[0], x, dout)
+model = ThreeLayerConvNet(
+    num_filters=3,
+    filter_size=3,
+    input_dim=input_dim,
+    hidden_dim=7,
+    dtype=np.float64
+)
+loss, grads = model.loss(X, y)
+# Errors should be small, but correct implementations may have
+# relative errors up to the order of e-2
+for param_name in sorted(grads):
+    f = lambda _: model.loss(X, y)[0]
+    param_grad_num = eval_numerical_gradient(f, model.params[param_name], verbose=False, h=1e-6)
+    e = rel_error(param_grad_num, grads[param_name])
+    print('%s max relative error: %e' % (param_name, rel_error(param_grad_num, grads[param_name])))
 
-out, cache = max_pool_forward_naive(x, pool_param)
-dx = max_pool_backward_naive(dout, cache)
-
-# Your error should be on the order of e-12
-print('Testing max_pool_backward_naive function:')
-print('dx error: ', rel_error(dx, dx_num))
+print('a')
